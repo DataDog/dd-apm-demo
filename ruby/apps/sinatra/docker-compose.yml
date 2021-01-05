@@ -1,0 +1,67 @@
+version: '3.2'
+services:
+  sinatra:
+    build:
+      context: ../images/ruby/2.5
+    command: /bin/bash -c 'bundle exec ddtracerb exec puma config.ru -C /app/puma.rb'
+    depends_on:
+      - ddagent
+      - redis
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - DDAGENT_HOST=ddagent
+      - DD_PROFILING_ENABLED=true
+    expose:
+      - "80"
+    ports:
+      - "80:80"
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - ../../dd-trace-rb:/vendor/dd-trace-rb
+      - bundle:/usr/local/bundle
+  redis:
+    image: redis:3.0
+    expose:
+      - "6379"
+  ddagent:
+    image: datadog/agent
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_PROCESS_AGENT_ENABLED=false
+      - DD_BIND_HOST=0.0.0.0
+      - DD_API_KEY
+      - LOG_LEVEL=DEBUG
+      - DD_LOGS_STDOUT=yes
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+    expose:
+      - "8125/udp"
+      - "8126"
+    ports:
+      - "8125:8125/udp"
+      - "8126:8126"
+    volumes:
+      - type: bind
+        source: ./agent.yaml
+        target: /etc/datadog-agent/datadog.yaml
+      # - type: bind
+      #   source: /var/run/docker.sock
+      #   target: /var/run/docker.sock:ro
+      # - type: bind
+      #   source: /proc/
+      #   target: /host/proc/:ro
+      # - type: bind
+      #   source: /sys/fs/cgroup/
+      #   target: /host/sys/fs/cgroup:ro
+  loadtester_a:
+    build:
+      context: ../images/wrk
+    command: /bin/bash -c 'bash /app/test.sh'
+    depends_on:
+      - sinatra
+    volumes:
+      - ./wrk:/app
+volumes:
+  bundle:
