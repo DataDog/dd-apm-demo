@@ -1,8 +1,0 @@
-source 'https://rubygems.org' do
-  gem 'ffi'
-  gem 'google-protobuf'
-
-  source 'http://gems.datadoghq.com/prerelease' do
-    gem 'ddtrace', '0.43.0.feature.profiling.98496'
-  end
-end
